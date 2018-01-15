@@ -1,6 +1,6 @@
 <template>
   <div class="controlWrapper">
-    <div class="playerButtons">
+    <div class="playerButtons" v-bind:class="{'non-active': !timer.adccPoints}">
       <div class="buttonWrapper">
         <div v-on:click="scoreMutation({type:'points', player:'player1', value:+4})" class="button">+</div>
         <div class="buttonText">4</div>
@@ -18,7 +18,7 @@
       </div>
       <div class="buttonWrapper">
         <div v-on:click="scoreMutation({type:'advantages', player:'player1', value:+1})" class="button">+</div>
-        <div class="buttonText">adv</div>
+        <div class="buttonText">adcc</div>
         <div v-on:click="scoreMutation({type:'advantages', player:'player1', value:-1})" class="button">+</div>
       </div>
       <div class="buttonWrapper">
@@ -39,7 +39,7 @@
         <div v-on:click="stopTimer">{{timer.buttons.stop}}</div>
       </div>
     </div>
-    <div class="playerButtons">
+    <div class="playerButtons" v-bind:class="{'non-active': !timer.adccPoints}">
       <div class="buttonWrapper">
         <div v-on:click="scoreMutation({type:'points', player:'player2', value:+4})" class="button">+</div>
         <div v-on:click="modTimer('add')" class="buttonText">4</div>
@@ -205,5 +205,9 @@ export default {
 }
 .chronometerButtonsContainer div:hover {
   cursor: pointer;
+}
+.non-active {
+  pointer-events: none;
+  cursor: default;
 }
 </style>
