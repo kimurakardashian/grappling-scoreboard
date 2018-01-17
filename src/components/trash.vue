@@ -1,7 +1,8 @@
 <template>
   <div>
-    <i href="#" @click="lightbox=!lightbox" class="opt material-icons">settings</i>
-    <div v-bind:class="{none: !lightbox}" class="lightbox">
+    <i href="#" class="opt material-icons" data-toggle="modal" data-target="#mymodal">settings</i>
+    <!-- @click="lightbox=!lightbox" -->
+    <div class="modal lightbox" id="mymodal"><!--v-bind:class="{none: !lightbox}" -->
       <div class="optionMenu container-fluid">
         <div class="row">
           <div class="col-lg-12" align="center">
@@ -140,7 +141,7 @@ export default {
   left:0.4%;
   font-size:2.5em;
   cursor: pointer;
-  z-index: 9000;
+  z-index: 4000;
   color:white;
 }
 label {

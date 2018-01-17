@@ -5,7 +5,7 @@ Vue.use(Vuex);
 
 export const store = new Vuex.Store({
   state: {
-    mode:true,
+    mode:false,
     rules: {
       ibjjf:true,
       adcc:false,
@@ -28,8 +28,11 @@ export const store = new Vuex.Store({
       preDuration: 60,
       displayTime: "01:00",
       warnTime: 30,
-      rounds: 3,
-      rest:60,
+      warn:false,
+      rounds: 2,
+      currentRound: 1,
+      breakTime:20,
+      resting: false,
       running:false,
       buttons: {
         start: "Start",
@@ -78,9 +81,55 @@ export const store = new Vuex.Store({
     },
     drillTimer: (state) => {
       return state.drillTimer
+    },
+    drillTimerDisplay: (state) => {
+      var duration = state.drillTimer.duration;
+      var minutes = parseInt(duration / 60, 10)
+      var seconds = parseInt(duration % 60, 10);
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      return String(minutes + ":" + seconds);
+    },
+    roundTimeDisplay: (state) => {
+      var duration = state.drillTimer.preDuration;
+      var minutes = parseInt(duration / 60, 10)
+      var seconds = parseInt(duration % 60, 10);
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      return String(minutes + ":" + seconds);
+    },
+    breakTimeDisplay: (state) => {
+      var duration = state.drillTimer.breakTime;
+      var minutes = parseInt(duration / 60, 10)
+      var seconds = parseInt(duration % 60, 10);
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      return String(minutes + ":" + seconds);
+    },
+    warnTimeDisplay: (state) => {
+      var duration = state.drillTimer.warnTime;
+      var minutes = parseInt(duration / 60, 10)
+      var seconds = parseInt(duration % 60, 10);
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      return String(minutes + ":" + seconds);
     }
   },
   mutations: {
+    mutateDrillTimer: (state, payload) => {
+      var timer = state.drillTimer;
+      if(timer[payload.type] + payload.value > 0) {
+        timer[payload.type] += payload.value;
+        if(timer['warnTime'] >= timer['preDuration']) {
+          timer['warnTime'] = timer['preDuration']-5;
+        }
+      }
+
+
+      if(payload.type == "preDuration") {
+        timer['duration'] = timer[payload.type];
+      }
+    },
     changeMode: (state) => {
       state.mode = !state.mode
     },
@@ -146,6 +195,17 @@ export const store = new Vuex.Store({
         state.timer.adccPoints = false;
         state.timer.buttons.start = "Start";
     },
+    stopDrillTimer: (state) => {
+      var timer = state.drillTimer;
+			timer.running = false
+			clearInterval(timer.chronometer);
+			timer.duration = timer.preDuration;
+      timer.warn = false;
+      timer.resting = false;
+      timer.currentRound = 1;
+      timer.adccPoints = false;
+      timer.buttons.start = "Start";
+    },
     resetScore: (state) => {
       state.player1.points = 0
       state.player1.advantages = 0
@@ -209,42 +269,69 @@ export const store = new Vuex.Store({
       }
     },
     startDrillTimer: (state) => {
-      if(!state.getters.drillTimer.running) {
-        state.getters.drillTimer.running = true;
-        state.getters.drillTimer.buttons.start = "Pause";
-        var duration = state.getters.drillTimer.duration
-        var timer = duration, minutes, seconds;
-        state.getters.drillTimer.chronometer = setInterval(function () {
-  				        minutes = parseInt(timer / 60, 10)
-  				        seconds = parseInt(timer % 60, 10);
+      var drillTimer = state.getters.drillTimer;
+      if(!drillTimer.running) {
+        drillTimer.running = true;
+        drillTimer.buttons.start = "Pause";
+        var duration = drillTimer.duration
+
+        var timer = drillTimer.duration, minutes, seconds;
+
+        drillTimer.chronometer = setInterval(function () {
+  				        minutes = parseInt(drillTimer.duration / 60, 10)
+  				        seconds = parseInt(drillTimer.duration % 60, 10);
 
   				        minutes = minutes < 10 ? "0" + minutes : minutes;
   				        seconds = seconds < 10 ? "0" + seconds : seconds;
 
-  				        state.getters.drillTimer.displayTime = String(minutes + ":" + seconds);
-  				        state.getters.drillTimer.duration = timer;
-  				        if (--timer < 0) {
-                    var currentTime = state.getters.drillTimer.preDuration;
-                    timer = state.getters.drillTimer.preDuration;
+  				        drillTimer.displayTime = String(minutes + ":" + seconds);
+  				        //drillTimer.duration = timer;
+                  if(--drillTimer.duration < 0) {
+                    var currentTime = drillTimer.preDuration;
+                    //timer = drillTimer.preDuration;
                     if(currentTime/60 <= 9) {
-                      state.getters.drillTimer.displayTime = String('0' + state.getters.drillTimer.preDuration/60 + ':00');
+                      drillTimer.displayTime = String('0' + drillTimer.preDuration/60 + ':00');
                     }
                     else {
-                      state.getters.drillTimer.displayTime = String(state.getters.drillTimer.preDuration/60 + ':00');
+                      drillTimer.displayTime = String(drillTimer.preDuration/60 + ':00');
                     }
-                    state.getters.drillTimer.buttons.start = "Start";
-                    state.getters.drillTimer.running = false;
-                    var audio = new Audio("../gameover.mp3");
+                    if(drillTimer.currentRound == drillTimer.rounds && drillTimer.resting == false) {
+                      drillTimer.buttons.start = "Start";
+                      drillTimer.running = false;
+                      drillTimer.warn = false;
+                      drillTimer.duration = drillTimer.preDuration
+                      drillTimer.currentRound = 1;
+                      var audio = new Audio("../horn.mp3");
+                      audio.play();
+                      clearInterval(drillTimer.chronometer);
+                    }
+                    else if(drillTimer.currentRound < drillTimer.rounds && drillTimer.resting){
+                      drillTimer.currentRound++;
+                      drillTimer.resting = false;
+                      drillTimer.warn = false;
+                      drillTimer.duration = drillTimer.preDuration
+                    }
+                    else if(drillTimer.resting == false && drillTimer.currentRound < drillTimer.rounds){
+                      drillTimer.duration = drillTimer.breakTime;
+                      drillTimer.resting = true;
+                      drillTimer.warn = false;
+                    }
+                    else if(drillTimer.resting == true && drillTimer.currentRound < drillTimer.rounds) {
+                      drillTimer.resting = false;
+                      drillTimer.warn = false;
+                    }
+  				        }//Termina el timer
+                  if(drillTimer.warnTime == drillTimer.duration && !drillTimer.resting) {
+                    drillTimer.warn = true;
+                    var audio = new Audio("../alert.mp3");
                     audio.play();
-                    state.getters.drillTimer.duration = state.getters.drillTimer.preDuration
-                    clearInterval(state.getters.drillTimer.chronometer);
-  				        }
+                  }
   				    }, 1000);
       }
       else {
-        state.getters.drillTimer.buttons.start = "Start";
-        state.getters.drillTimer.running = false;
-		    clearInterval(state.getters.drillTimer.chronometer);
+        drillTimer.buttons.start = "Start";
+        drillTimer.running = false;
+		    clearInterval(drillTimer.chronometer);
       }
     }
   }
